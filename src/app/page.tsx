@@ -103,8 +103,12 @@ export default function HomePage() {
       />
     </div>
   );
-
-  const FloatingSkillCard = ({ skill, index }) => (
+type Skill = {
+  name: string;
+  emoji: string;
+  color: string;
+};
+  const FloatingSkillCard = ({ skill, index }: { skill: Skill; index: number }) => (
     <motion.div
       className="absolute"
       style={{
