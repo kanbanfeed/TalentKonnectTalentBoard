@@ -1,120 +1,133 @@
+// app/api/profiles/route.ts
 import { NextResponse } from 'next/server';
-import Airtable from 'airtable';
+import Airtable, { FieldSet, Records } from 'airtable';
 
-// Initialize Airtable directly in the API route
 const base = new Airtable({
   apiKey: process.env.AIRTABLE_API_KEY!,
 }).base(process.env.AIRTABLE_BASE_ID!);
 
 const profilesTable = base('Profiles');
 
-export async function POST(request: Request) {
-  // Check if environment variables are set
-  if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-    return NextResponse.json(
-      { error: 'Server configuration error: Airtable credentials missing' },
-      { status: 500 }
-    );
-  }
+interface ProfileFields extends FieldSet {
+  full_name?: string;
+  email?: string;
+  spark_line?: string;
+  skills?: string[];
+  city?: string;
+  price_usd?: number;
+  price_local?: string;
+  availability?: string;
+  youtube_link?: string;
+  photo_url?: string;
+  status?: string;
+  resume?:[];
+}
 
+export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    
-    // Validate required fields
-    const requiredFields = ['full_name', 'email', 'spark_line', 'skills', 'city', 'price_usd', 'price_local', 'availability'];
-    const missingFields = requiredFields.filter(field => !body[field]);
-    
-    if (missingFields.length > 0) {
+    const formData = await request.formData();
+
+    const full_name = formData.get('full_name');
+    const email = formData.get('email');
+    const spark_line = formData.get('spark_line');
+    const skills = formData.get('skills');
+    const city = formData.get('city');
+    const price_usd = formData.get('price_usd');
+    const price_local = formData.get('price_local');
+    const availability = formData.get('availability');
+    const youtube_link = formData.get('youtube_link');
+    const resume = formData.get('resume');
+
+    // Validate required fields and types
+    if (
+      typeof full_name !== 'string' || !full_name ||
+      typeof email !== 'string' || !email ||
+      typeof spark_line !== 'string' || !spark_line ||
+      typeof city !== 'string' || !city ||
+      typeof price_usd !== 'string' || !price_usd
+    ) {
       return NextResponse.json(
-        { error: `Missing required fields: ${missingFields.join(', ')}` },
+        { error: 'Missing or invalid required fields' },
         { status: 400 }
       );
     }
 
-    // Prepare fields for Airtable
-    const fields: any = {
-      full_name: body.full_name,
-      email: body.email,
-      spark_line: body.spark_line,
-      skills: body.skills,
-      city: body.city,
-      price_usd: body.price_usd,
-      price_local: body.price_local,
-      availability: body.availability,
-      youtube_link: body.youtube_link || '',
-      status: 'Active'
+    const airtableData: ProfileFields = {
+      full_name,
+      email,
+      spark_line,
+      skills: typeof skills === 'string' ? JSON.parse(skills) : [],
+      city,
+      price_usd: Number(price_usd),
+      price_local: typeof price_local === 'string' ? price_local : '',
+      availability: typeof availability === 'string' ? availability : '',
+      youtube_link: typeof youtube_link === 'string' ? youtube_link : '',
+      status: 'Active',
+      // resume: handle separately if needed
     };
 
-    // Add resume field if provided
-    if (body.resume) {
-      fields.resume = body.resume;
+    if (resume instanceof File && resume.size > 0) {
+      console.log('Resume file received:', resume.name, resume.size);
+      // Upload handling here if needed
     }
 
-    const record = await profilesTable.create([
-      {
-        fields: fields
-      }
-    ]);
+    const record = await profilesTable.create([{ fields: airtableData }]);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       id: record[0].id,
-      message: 'Profile created successfully'
+      message: 'Profile created successfully in Airtable'
     });
-    
-  } catch (error: any) {
-    console.error('Error creating profile:', error);
+
+  } catch (error) {
+    let message = 'Unknown error';
+    if (error instanceof Error) message = error.message;
+    console.error('Error creating profile:', message);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to create profile',
-        details: error.message 
+        details: message,
       },
       { status: 500 }
     );
   }
 }
 
-// Add GET method for fetching profiles
 export async function GET() {
-  // Check if environment variables are set
-  if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-    return NextResponse.json(
-      { error: 'Server configuration error: Airtable credentials missing' },
-      { status: 500 }
-    );
-  }
-
   try {
-    const records = await profilesTable.select({
-      filterByFormula: "{status} = 'Active'"
+    const records: Records<ProfileFields> = await profilesTable.select({
+      filterByFormula: "{status} = 'Active'",
+      maxRecords: 100
     }).firstPage();
-    
+
     const profiles = records.map(record => ({
       id: record.id,
-      full_name: record.fields.full_name as string || '',
-      email: record.fields.email as string || '',
-      spark_line: record.fields.spark_line as string || '',
-      skills: record.fields.skills as string[] || [],
-      city: record.fields.city as string || '',
-      price_usd: record.fields.price_usd as number || 0,
-      price_local: record.fields.price_local as string || '',
-      availability: record.fields.availability as string || '',
-      status: record.fields.status as string || 'Active',
-      youtube_link: record.fields.youtube_link as string || '',
-      resume: record.fields.resume || null, // Add resume field
+      full_name: record.fields.full_name ?? '',
+      email: record.fields.email ?? '',
+      spark_line: record.fields.spark_line ?? '',
+      skills: Array.isArray(record.fields.skills) ? record.fields.skills : [],
+      city: record.fields.city ?? '',
+      price_usd: record.fields.price_usd ?? 0,
+      price_local: record.fields.price_local ?? '',
+      availability: record.fields.availability ?? '',
+      status: record.fields.status ?? 'Active',
+      youtube_link: record.fields.youtube_link ?? '',
+      photo_url: record.fields.photo_url ?? '',
     }));
 
-    return NextResponse.json({ 
-      success: true, 
-      profiles 
+    return NextResponse.json({
+      success: true,
+      profiles
     });
-    
-  } catch (error: any) {
-    console.error('Error fetching profiles:', error);
+
+  } catch (error) {
+    let message = 'Unknown error';
+    if (error instanceof Error) message = error.message;
+    console.error('Error fetching profiles:', message);
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to fetch profiles',
-        details: error.message 
+        details: message,
       },
       { status: 500 }
     );
