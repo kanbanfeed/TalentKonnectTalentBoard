@@ -250,7 +250,7 @@ type Skill = {
 
     {/* Main Headline */}
     <motion.h1 
-      className="text-6xl md:text-8xl font-black text-gray-900 mb-8 leading-tight"
+      className="text-6xl md:text-6xl font-black text-gray-900 mb-8 leading-tight"
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 1, ease: "easeOut" }}
@@ -299,7 +299,7 @@ type Skill = {
       {/* Primary Payment Button */}
       <motion.a
         href="https://buy.stripe.com/test_dRm4gBdqEdsq4gueKa3cc03"
-        className="group relative bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-2xl py-6 px-4 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-300 block w-full max-w-md overflow-hidden"
+        className="group relative bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-2xl py-4 px-2 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-300 block w-100 max-w-md overflow-hidden"
         whileHover={{ scale: 1.05, y: -2 }}
         whileTap={{ scale: 0.98 }}
         onHoverStart={() => setIsHovered(true)}
@@ -316,9 +316,9 @@ type Skill = {
           )}
         </AnimatePresence>
         <span className="relative z-10 flex items-center justify-center space-x-4">
-          <Rocket className="w-12 h-12" />
+          <Rocket className="w-10 h-10" />
           <span>START EARNING - $7</span>
-          <ArrowRight className="w-12 h-12 group-hover:translate-x-2 transition-transform duration-300" />
+          <ArrowRight className="w-10 h-10 group-hover:translate-x-2 transition-transform duration-300" />
         </span>
       </motion.a>
 
