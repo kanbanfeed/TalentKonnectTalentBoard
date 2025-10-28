@@ -133,36 +133,27 @@ export default function TalentBoardPage() {
         }
         
         const data = await response.json() as {
-          success: boolean;
-          profiles: Profile[];
-          error?: string;
-        };
-        
+  success: boolean;
+  profiles: Profile[];
+  error?: string;
+};
         console.log('Airtable response:', data);
         
         if (data.success && data.profiles && Array.isArray(data.profiles)) {
           const profilesData = data.profiles;
           console.log('Profiles loaded:', profilesData.length);
           
-          // Debug: Check YouTube links
-          console.log('=== YOUTUBE LINKS DEBUG ===');
-          profilesData.forEach((profile, index) => {
-            console.log(`Profile ${index + 1}: ${profile.full_name}`);
-            console.log('YouTube Link:', profile.youtube_link);
-            console.log('Has YouTube Link:', !!profile.youtube_link);
-            if (profile.youtube_link) {
-              console.log('YouTube ID:', getYouTubeId(profile.youtube_link));
-            }
-          });
-          console.log('=== END DEBUG ===');
-          
           setProfiles(profilesData);
           setFilteredProfiles(profilesData);
 
-          // Extract dropdown data from profiles
+          // Extract dropdown data from profiles - FIXED THIS PART
           const allSkills = profilesData.flatMap((p: Profile) => p.skills || []);
           const allCities = profilesData.map((p: Profile) => p.city || '').filter(Boolean);
           const allAvailability = profilesData.map((p: Profile) => p.availability || '').filter(Boolean);
+
+          console.log('Extracted skills:', allSkills);
+          console.log('Extracted cities:', allCities);
+          console.log('Extracted availability:', allAvailability);
 
           // Remove duplicates and sort
           const uniqueSkills = Array.from(new Set(allSkills)).sort();
@@ -170,6 +161,12 @@ export default function TalentBoardPage() {
           const uniqueAvailability = Array.from(new Set(allAvailability)).sort();
 
           setDropdownData({
+            skills: ['All Skills', ...uniqueSkills],
+            cities: ['All Cities', ...uniqueCities],
+            availability: ['Any Time', ...uniqueAvailability],
+          });
+
+          console.log('Final dropdown data:', {
             skills: ['All Skills', ...uniqueSkills],
             cities: ['All Cities', ...uniqueCities],
             availability: ['Any Time', ...uniqueAvailability],
@@ -245,42 +242,11 @@ export default function TalentBoardPage() {
     setFilteredProfiles(filtered);
   };
 
-  // Extract YouTube video ID from URL - IMPROVED VERSION
+  // Extract YouTube video ID from URL
   const getYouTubeId = (url: string) => {
-    if (!url || typeof url !== 'string') return null;
-    
-    try {
-      // Clean the URL - remove any extra spaces
-      const cleanUrl = url.trim();
-      
-      // Handle various YouTube URL formats
-      const patterns = [
-        /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/,
-        /youtube\.com\/watch\?v=([^"&?\/\s]{11})/,
-        /youtu\.be\/([^"&?\/\s]{11})/,
-        /youtube\.com\/embed\/([^"&?\/\s]{11})/,
-        /youtube\.com\/v\/([^"&?\/\s]{11})/
-      ];
-
-      for (const pattern of patterns) {
-        const match = cleanUrl.match(pattern);
-        if (match && match[1]) {
-          return match[1];
-        }
-      }
-      
-      // If no match found, try a more general approach
-      const urlObj = new URL(cleanUrl);
-      const videoId = urlObj.searchParams.get('v');
-      if (videoId && videoId.length === 11) {
-        return videoId;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error parsing YouTube URL:', url, error);
-      return null;
-    }
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    return match ? match[1] : null;
   };
 
   const budgetOptions = ['Any Budget', 'Under $20', '$20 - $50', 'Over $50'];
@@ -524,6 +490,9 @@ export default function TalentBoardPage() {
             )}
           </motion.div>
 
+          
+
+      
           {/* Profiles Grid - Lower z-index so dropdowns appear above */}
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ zIndex: 10 }}>
@@ -643,13 +612,11 @@ export default function TalentBoardPage() {
                       </div>
 
                       <div className="flex gap-3">
-                        {/* YouTube Video Button - FIXED LOGIC */}
-                        {profile.youtube_link && getYouTubeId(profile.youtube_link) ? (
+                        {profile.youtube_link && (
                           <motion.button
                             onClick={() => {
                               const videoId = getYouTubeId(profile.youtube_link!);
-                              console.log('Playing YouTube video:', videoId);
-                              setSelectedVideo(videoId);
+                              if (videoId) setSelectedVideo(videoId);
                             }}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
@@ -658,16 +625,7 @@ export default function TalentBoardPage() {
                             <Play className="w-4 h-4 group-hover/play:scale-110 transition-transform" />
                             Play Intro
                           </motion.button>
-                        ) : profile.youtube_link ? (
-                          <motion.button
-                            disabled
-                            className="flex-1 bg-gradient-to-r from-gray-400 to-gray-500 text-white py-3 px-4 rounded-2xl font-semibold shadow-lg flex items-center justify-center gap-2 cursor-not-allowed"
-                          >
-                            <Play className="w-4 h-4" />
-                            Invalid Video
-                          </motion.button>
-                        ) : null}
-                        
+                        )}
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
