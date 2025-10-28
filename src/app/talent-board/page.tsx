@@ -132,7 +132,11 @@ export default function TalentBoardPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        const data = await response.json();
+        const data = await response.json() as {
+  success: boolean;
+  profiles: Profile[];
+  error?: string;
+};
         console.log('Airtable response:', data);
         
         if (data.success && data.profiles && Array.isArray(data.profiles)) {
