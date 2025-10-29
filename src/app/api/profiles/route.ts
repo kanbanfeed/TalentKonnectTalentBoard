@@ -1,48 +1,12 @@
 import { NextResponse } from 'next/server';
+import Airtable from 'airtable';
 
-// Define the Profile interface for the response
-interface Profile {
-  id: string;
-  full_name: string;
-  email: string;
-  spark_line: string;
-  skills: string[];
-  city: string;
-  price_usd: number;
-  price_local: string;
-  availability: string;
-  status: string;
-  youtube_link: string;
-  photo_url: string;
-}
 
 export async function POST(request: Request) {
   try {
-    console.log('=== PROFILE CREATION STARTED ===');
-
-    // Check environment variables
-    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
-      console.error('MISSING ENVIRONMENT VARIABLES');
-      return NextResponse.json(
-        { 
-          error: 'Server configuration error',
-          details: 'Airtable environment variables not set'
-        },
-        { status: 500 }
-      );
-    }
-
-    console.log('API Key exists:', !!process.env.AIRTABLE_API_KEY);
-    console.log('Base ID exists:', !!process.env.AIRTABLE_BASE_ID);
-
-    const Airtable = require('airtable');
-    const base = new Airtable({
-      apiKey: process.env.AIRTABLE_API_KEY,
-    }).base(process.env.AIRTABLE_BASE_ID);
-
     const formData = await request.formData();
 
-    // Extract and validate data
+    // Extract form data
     const full_name = formData.get('full_name');
     const email = formData.get('email');
     const spark_line = formData.get('spark_line');
@@ -53,7 +17,7 @@ export async function POST(request: Request) {
     const availability = formData.get('availability');
     const youtube_link = formData.get('youtube_link');
 
-    // Simple validation
+    // Basic validation
     if (!full_name || !email || !spark_line || !city || !price_usd) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -61,49 +25,49 @@ export async function POST(request: Request) {
       );
     }
 
-    const fields = {
-      full_name: String(full_name),
-      email: String(email),
-      spark_line: String(spark_line),
-      skills: skills ? JSON.parse(String(skills)) : [],
-      city: String(city),
-      price_usd: Number(price_usd),
-      price_local: String(price_local || ''),
-      availability: String(availability || 'Tonight'),
-      youtube_link: String(youtube_link || ''),
-      status: 'Active',
-    };
+    // Check if Airtable is configured
+    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
+      return NextResponse.json(
+        { error: 'Service not configured properly' },
+        { status: 500 }
+      );
+    }
 
-    console.log('Creating Airtable record with:', fields);
+ 
+    const base = new Airtable({
+      apiKey: process.env.AIRTABLE_API_KEY,
+    }).base(process.env.AIRTABLE_BASE_ID);
 
-    // Create record
-    const records = await base('Profiles').create([{ fields }]);
-    const record = records[0];
-
-    console.log('Record created successfully:', record.id);
+    // Create record in Airtable
+    const records = await base('Profiles').create([
+      {
+        fields: {
+          full_name: String(full_name),
+          email: String(email),
+          spark_line: String(spark_line),
+          skills: skills ? JSON.parse(String(skills)) : [],
+          city: String(city),
+          price_usd: Number(price_usd),
+          price_local: String(price_local || ''),
+          availability: String(availability || 'Tonight'),
+          youtube_link: String(youtube_link || ''),
+          status: 'Active',
+        }
+      }
+    ]);
 
     return NextResponse.json({
       success: true,
-      id: record.id,
+      id: records[0].getId(),
       message: 'Profile created successfully'
     });
 
   } catch (error: any) {
-    console.error('FULL ERROR DETAILS:', error);
-    
-    // More detailed error logging
-    let errorDetails = 'Unknown error';
-    if (error.error) {
-      errorDetails = JSON.stringify(error.error);
-    } else if (error.message) {
-      errorDetails = error.message;
-    }
-
+    console.error('Error:', error);
     return NextResponse.json(
       {
         error: 'Failed to create profile',
-        details: errorDetails,
-        type: error?.name || 'Unknown'
+        details: error.message || 'Unknown error'
       },
       { status: 500 }
     );
@@ -112,6 +76,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
+    // Check if Airtable is configured
     if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
       return NextResponse.json({ success: true, profiles: [] });
     }
@@ -128,8 +93,7 @@ export async function GET() {
       })
       .firstPage();
 
-    // ✅ FIXED: Remove the Airtable.Record type annotation and use type assertion
-    const profiles: Profile[] = records.map((record: any) => ({
+    const profiles = records.map((record: any) => ({
       id: record.id,
       full_name: record.fields.full_name || '',
       email: record.fields.email || '',
@@ -149,8 +113,8 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching profiles:', error);
     return NextResponse.json(
-      { success: true, profiles: [], error: 'Failed to fetch from Airtable' },
-      { status: 200 } // Don't fail the page load
+      { success: true, profiles: [] },
+      { status: 200 }
     );
   }
 }
