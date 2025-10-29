@@ -1,25 +1,35 @@
+// app/api/skills/route.ts
 import { NextResponse } from 'next/server';
 import Airtable from 'airtable';
 
 export async function GET() {
-  const base = new Airtable({ apiKey: process.env.AIRTABLE_API_KEY }).base( process.env.AIRTABLE_BASE_ID);
-
   try {
-    const records = await base('Profiles').select({
-      // Add filter if needed
-      maxRecords: 100
-    }).firstPage();
+    // Check if environment variables exist
+    if (!process.env.AIRTABLE_API_KEY || !process.env.AIRTABLE_BASE_ID) {
+      return NextResponse.json({ 
+        success: true, 
+        skills: [] 
+      });
+    }
 
-    // Collect all skill values from all profiles
-    const allSkills = records.flatMap(record => Array.isArray(record.fields.skills) ? record.fields.skills : []);
+    // Now TypeScript knows these are not undefined
+    const base = new Airtable({ 
+      apiKey: process.env.AIRTABLE_API_KEY 
+    }).base(process.env.AIRTABLE_BASE_ID);
 
-    // Get unique skills
-    const uniqueSkills = Array.from(new Set(allSkills));
+    const records = await base('Skills')
+      .select({ 
+        filterByFormula: "{status} = 'Active'",
+        maxRecords: 100 
+      })
+      .firstPage();
 
-    return NextResponse.json({ success: true, skills: uniqueSkills });
+    const skills = records.map((record: any) => record.fields.name).filter(Boolean);
+
+    return NextResponse.json({ success: true, skills });
 
   } catch (error) {
-    console.error('Failed to fetch skills', error);
-    return NextResponse.json({ success: false, skills: [] });
+    console.error('Error fetching skills:', error);
+    return NextResponse.json({ success: true, skills: [] });
   }
 }
