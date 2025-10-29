@@ -243,11 +243,31 @@ export default function TalentBoardPage() {
   };
 
   // Extract YouTube video ID from URL
-  const getYouTubeId = (url: string) => {
-    if (!url) return null;
-    const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
-    return match ? match[1] : null;
-  };
+ // Improved YouTube ID extraction function
+const getYouTubeId = (url: string) => {
+  if (!url) return null;
+  
+  // Remove any extra spaces
+  url = url.trim();
+  
+  // Handle various YouTube URL formats
+  const patterns = [
+    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/,
+    /youtube\.com\/watch\?v=([^"&?\/\s]{11})/,
+    /youtu\.be\/([^"&?\/\s]{11})/,
+    /youtube\.com\/embed\/([^"&?\/\s]{11})/,
+    /youtube\.com\/v\/([^"&?\/\s]{11})/
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return null;
+};
 
   const budgetOptions = ['Any Budget', 'Under $20', '$20 - $50', 'Over $50'];
 
@@ -255,40 +275,40 @@ export default function TalentBoardPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50 overflow-hidden relative">
       {/* YouTube Video Modal */}
       <AnimatePresence>
-        {selectedVideo && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setSelectedVideo(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="relative bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                onClick={() => setSelectedVideo(null)}
-                className="absolute top-4 right-4 z-10 bg-white/90 hover:bg-white rounded-full p-2 transition-all duration-300"
-              >
-                <X className="w-5 h-5 text-gray-700" />
-              </button>
-              <div className="aspect-video w-full">
-                <iframe
-                  src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1`}
-                  title="YouTube video player"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="w-full h-full rounded-2xl"
-                />
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+  {selectedVideo && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      onClick={() => setSelectedVideo(null)}
+    >
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        className="relative bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={() => setSelectedVideo(null)}
+          className="absolute top-4 right-4 z-10 bg-white/90 hover:bg-white rounded-full p-2 transition-all duration-300"
+        >
+          <X className="w-5 h-5 text-gray-700" />
+        </button>
+        <div className="aspect-video w-full">
+          <iframe
+            src={`https://www.youtube.com/embed/${selectedVideo}?autoplay=1`}
+            title="YouTube video player"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full rounded-2xl"
+          />
+        </div>
+      </motion.div>
+    </motion.div>
+  )}
+</AnimatePresence>
 
       {/* Animated Background */}
       <div className="absolute inset-0 overflow-hidden" style={{ zIndex: 0 }}>
@@ -613,19 +633,29 @@ export default function TalentBoardPage() {
 
                       <div className="flex gap-3">
                         {profile.youtube_link && (
-                          <motion.button
-                            onClick={() => {
-                              const videoId = getYouTubeId(profile.youtube_link!);
-                              if (videoId) setSelectedVideo(videoId);
-                            }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 text-white py-3 px-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 group/play"
-                          >
-                            <Play className="w-4 h-4 group-hover/play:scale-110 transition-transform" />
-                            Play Intro
-                          </motion.button>
-                        )}
+  <motion.button
+    onClick={() => {
+      console.log('YouTube URL:', profile.youtube_link);
+      const videoId = getYouTubeId(profile.youtube_link!);
+      console.log('Extracted Video ID:', videoId);
+      
+      if (videoId) {
+        setSelectedVideo(videoId);
+        console.log('Opening modal for video:', videoId);
+      } else {
+        console.error('Could not extract YouTube ID from URL:', profile.youtube_link);
+        // Optional: Show error message to user
+        alert('Invalid YouTube URL format');
+      }
+    }}
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    className="flex-1 bg-gradient-to-r from-red-500 to-pink-500 text-white py-3 px-4 rounded-2xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center gap-2 group/play"
+  >
+    <Play className="w-4 h-4 group-hover/play:scale-110 transition-transform" />
+    Play Intro
+  </motion.button>
+)}
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}

@@ -1,4 +1,3 @@
-// app/api/profiles/route.ts
 import { NextResponse } from 'next/server';
 import Airtable, { FieldSet, Records } from 'airtable';
 
@@ -20,7 +19,7 @@ interface ProfileFields extends FieldSet {
   youtube_link?: string;
   photo_url?: string;
   status?: string;
-  resume?:[];
+  resume?: any[]; // For Airtable attachments
 }
 
 export async function POST(request: Request) {
@@ -63,12 +62,23 @@ export async function POST(request: Request) {
       availability: typeof availability === 'string' ? availability : '',
       youtube_link: typeof youtube_link === 'string' ? youtube_link : '',
       status: 'Active',
-      // resume: handle separately if needed
     };
 
+    // Handle resume file upload
     if (resume instanceof File && resume.size > 0) {
       console.log('Resume file received:', resume.name, resume.size);
-      // Upload handling here if needed
+      
+      // Convert File to buffer for Airtable
+      const buffer = await resume.arrayBuffer();
+      const base64String = Buffer.from(buffer).toString('base64');
+      
+      // Prepare attachment data for Airtable
+      airtableData.resume = [
+        {
+          url: `data:${resume.type};base64,${base64String}`,
+          filename: resume.name,
+        },
+      ];
     }
 
     const record = await profilesTable.create([{ fields: airtableData }]);
@@ -92,6 +102,7 @@ export async function POST(request: Request) {
     );
   }
 }
+
 
 export async function GET() {
   try {
