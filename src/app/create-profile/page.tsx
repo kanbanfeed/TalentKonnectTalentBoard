@@ -2,9 +2,176 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Star, Zap, Crown, CheckCircle, MapPin, Clock, Video, DollarSign, User, Mail, Award, FileText } from 'lucide-react';
+import { ArrowRight, Star, Zap, Crown, CheckCircle, MapPin, Clock, Video, DollarSign, User, Mail, Award, FileText, ChevronDown, X } from 'lucide-react';
+
+// Custom Dropdown Component for Skills
+const SkillsDropdown = ({ 
+  skills, 
+  selectedSkills, 
+  onSkillToggle, 
+  maxSkills = 10 
+}: {
+  skills: string[];
+  selectedSkills: string[];
+  onSkillToggle: (skill: string) => void;
+  maxSkills?: number;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setSearchTerm('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredSkills = skills.filter(skill =>
+    skill.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const availableSkills = filteredSkills.filter(skill => !selectedSkills.includes(skill));
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      {/* Selected Skills Display */}
+      <div className="mb-3">
+        <label className="block text-sm font-semibold text-gray-700 mb-3">
+          Select Your Skills ({selectedSkills.length}/{maxSkills}) *
+        </label>
+        
+        {/* Selected Skills Tags */}
+        {selectedSkills.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {selectedSkills.map((skill) => (
+              <motion.span
+                key={skill}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-3 py-1.5 rounded-full text-sm font-medium flex items-center space-x-2 group"
+              >
+                <span>{skill}</span>
+                <button
+                  type="button"
+                  onClick={() => onSkillToggle(skill)}
+                  className="hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </motion.span>
+            ))}
+          </div>
+        )}
+
+        {/* Dropdown Trigger */}
+        <motion.button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          disabled={selectedSkills.length >= maxSkills}
+          className="w-full bg-white border-2 border-gray-300 rounded-2xl px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-300 flex items-center justify-between group hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+          whileHover={{ scale: selectedSkills.length >= maxSkills ? 1 : 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <span className="text-gray-500">
+            {selectedSkills.length === 0 
+              ? `Choose up to ${maxSkills} skills...` 
+              : `${selectedSkills.length} skill${selectedSkills.length === 1 ? '' : 's'} selected`
+            }
+          </span>
+          <motion.div
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronDown className="w-5 h-5 text-gray-400 group-hover:text-gray-600" />
+          </motion.div>
+        </motion.button>
+      </div>
+
+      {/* Dropdown Menu */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl backdrop-blur-xl max-h-80 overflow-hidden"
+          >
+            {/* Search Input */}
+            <div className="p-3 border-b border-gray-100">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search skills..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-300"
+                />
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            {/* Skills List */}
+            <div className="max-h-56 overflow-y-auto">
+              {availableSkills.length === 0 ? (
+                <div className="p-4 text-center text-gray-500">
+                  {searchTerm ? 'No skills found' : 'All skills selected'}
+                </div>
+              ) : (
+                <div className="p-2 space-y-1">
+                  {availableSkills.map((skill, index) => (
+                    <motion.button
+                      key={skill}
+                      type="button"
+                      onClick={() => {
+                        onSkillToggle(skill);
+                        setSearchTerm('');
+                      }}
+                      className="w-full text-left px-4 py-3 rounded-xl transition-all duration-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 border border-transparent"
+                      whileHover={{ scale: 1.02, x: 4 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center" />
+                        <span className="font-medium">{skill}</span>
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 border-t border-gray-100 bg-gray-50">
+              <div className="flex justify-between items-center text-xs text-gray-500">
+                <span>
+                  {selectedSkills.length}/{maxSkills} skills selected
+                </span>
+                {selectedSkills.length >= maxSkills && (
+                  <span className="text-amber-600 font-semibold">
+                    Maximum reached
+                  </span>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default function CreateProfilePage() {
   const router = useRouter();
@@ -23,51 +190,121 @@ export default function CreateProfilePage() {
     resume: null as File | null,
   });
 
+  // ⚠️ IMPORTANT: Replace this array with EXACT options from your Airtable skills field
   const skillsOptions = [
-    'Resume Writer', 'Financial Analyst', 'CTO', 'Software Developer', 
-    'Web Designer', 'Data Scientist', 'Indian Cooking', 'Music Vocals',
-    'Vodka Cocktails', 'Party Planning', 'Marketing Manager', 'Content Writer',
-    'AI Prompt Engineering', 'Data Analysis', 'Personal Training', 'Yoga Instruction',
-    'Life Coaching', 'Career Counseling', 'Graphic Design', 'Video Editing'
+    'Resume Writer',
+    'Financial Analyst',
+    'CTO',
+    'Software Developer',
+    'Web Designer',
+    'Data Scientist',
+    'Indian Cooking',
+    'Music Vocals',
+    'Vodka Cocktails',
+    'Party Planning',
+    'Marketing Manager',
+    'Content Writer',
+    'AI Prompt Engineering',
+    'Data Analysis',
+    'Personal Training',
+    'Yoga Instruction',
+    'Life Coaching',
+    'Career Counseling',
+    'Graphic Design',
+    'Video Editing',
+    'Public Speaking',
+    'Language Tutoring',
+    'Math Tutoring',
+    'Science Tutoring',
+    'Music Production',
+    'Photography',
+    'Social Media Management',
+    'SEO Optimization',
+    'Web Development',
+    'Mobile App Development',
+    'UI/UX Design',
+    'Project Management',
+    'Business Consulting',
+    'Financial Planning',
+    'Tax Consulting',
+    'Legal Advice',
+    'Real Estate Consulting',
+    'Home Renovation',
+    'Gardening',
+    'Pet Training',
+    'Fitness Training',
+    'Nutrition Consulting',
+    'Meditation Guidance',
+    'Art Lessons',
+    'Dance Lessons',
+    'Cooking Classes',
+    'Baking',
+    'Mixology',
+    'Event Planning',
+    'Travel Planning',
+    'Personal Shopping',
+    'Fashion Styling',
+    'Makeup Artistry',
+    'Hair Styling',
+    'Car Repair',
+    'Tech Support',
+    'Video Production',
+    'Podcast Production',
+    'Writing & Editing',
+    'Translation Services',
+    'Research Assistance',
+    'Data Entry',
+    'Virtual Assistance'
+    // ⚠️ ADD ALL YOUR ACTUAL AIRTABLE SKILLS OPTIONS HERE
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
 
-    try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('full_name', formData.full_name);
-      formDataToSend.append('email', formData.email);
-      formDataToSend.append('spark_line', formData.spark_line);
-      formDataToSend.append('skills', JSON.stringify(formData.skills));
-      formDataToSend.append('city', formData.city);
-      formDataToSend.append('price_usd', formData.price_usd);
-      formDataToSend.append('price_local', formData.price_local);
-      formDataToSend.append('availability', formData.availability);
-      formDataToSend.append('youtube_link', formData.youtube_link);
-      formDataToSend.append('status', 'Active');
-      
-      if (formData.resume) {
-        formDataToSend.append('resume', formData.resume);
-      }
+  try {
+    const formDataToSend = new FormData();
+    formDataToSend.append('full_name', formData.full_name);
+    formDataToSend.append('email', formData.email);
+    formDataToSend.append('spark_line', formData.spark_line);
+    formDataToSend.append('skills', JSON.stringify(formData.skills));
+    formDataToSend.append('city', formData.city);
+    formDataToSend.append('price_usd', formData.price_usd);
+    formDataToSend.append('price_local', formData.price_local);
+    formDataToSend.append('availability', formData.availability);
+    formDataToSend.append('youtube_link', formData.youtube_link);
 
-      const response = await fetch('/api/profiles', {
-        method: 'POST',
-        body: formDataToSend,
-      });
+    console.log('🔄 Sending form data:', {
+      full_name: formData.full_name,
+      email: formData.email,
+      skills: formData.skills,
+      city: formData.city,
+      price_usd: formData.price_usd,
+      price_local: formData.price_local,
+      availability: formData.availability,
+      youtube_link: formData.youtube_link
+    });
 
-      if (response.ok) {
-        router.push('/talent-board?success=true');
-      } else {
-        alert('Error creating profile. Please try again.');
-      }
-    } catch (error) {
-      alert('Error creating profile. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    const response = await fetch('/api/profiles', {
+      method: 'POST',
+      body: formDataToSend,
+    });
+
+    const result = await response.json();
+    console.log('📦 API Response:', result);
+
+    if (response.ok) {
+      router.push('/talent-board?success=true');
+    } else {
+      alert(`Error: ${result.error} - ${result.details || ''}`);
     }
-  };
+  } catch (error) {
+    console.error('💥 Fetch error:', error);
+    alert('Network error. Please check console.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const handleSkillToggle = (skill: string) => {
     setFormData(prev => {
@@ -309,67 +546,18 @@ export default function CreateProfilePage() {
                 </div>
               </motion.div>
 
-              {/* Skills Selection */}
+              {/* Skills Selection - UPDATED TO DROPDOWN */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.4 }}
               >
-                <label className="block text-sm font-semibold text-gray-700 mb-4">
-                  Select Your Skills (choose up to 10) *
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
-                  {skillsOptions.map((skill, index) => (
-                    <motion.label
-                      key={skill}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 1.6 + (index * 0.05) }}
-                      whileHover={{ scale: 1.05 }}
-                      className={`relative flex items-center space-x-3 p-3 border-2 rounded-2xl cursor-pointer transition-all duration-300 ${
-                        formData.skills.includes(skill)
-                          ? `border-emerald-500 bg-emerald-50 shadow-md`
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.skills.includes(skill)}
-                        onChange={() => handleSkillToggle(skill)}
-                        className="hidden"
-                      />
-                      <div className={`w-3 h-3 rounded-full border-2 flex items-center justify-center ${
-                        formData.skills.includes(skill)
-                          ? 'bg-emerald-500 border-emerald-500'
-                          : 'bg-white border-gray-400'
-                      }`}>
-                        {formData.skills.includes(skill) && (
-                          <CheckCircle className="w-3 h-3 text-white" />
-                        )}
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">{skill}</span>
-                    </motion.label>
-                  ))}
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-500">
-                    {formData.skills.length === 10 ? (
-                      <span className="text-amber-600 font-semibold">Maximum 10 skills selected</span>
-                    ) : (
-                      `Selected: ${formData.skills.length}/10 skills`
-                    )}
-                  </span>
-                  {formData.skills.length > 0 && (
-                    <motion.button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, skills: [] }))}
-                      whileHover={{ scale: 1.05 }}
-                      className="text-sm text-red-500 hover:text-red-700 font-medium"
-                    >
-                      Clear All
-                    </motion.button>
-                  )}
-                </div>
+                <SkillsDropdown
+                  skills={skillsOptions}
+                  selectedSkills={formData.skills}
+                  onSkillToggle={handleSkillToggle}
+                  maxSkills={10}
+                />
               </motion.div>
 
               {/* Location & Pricing */}
@@ -497,7 +685,7 @@ export default function CreateProfilePage() {
                 </p>
               </motion.div>
 
-              {/* Resume Upload Section - NEW */}
+              {/* Resume Upload Section */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
