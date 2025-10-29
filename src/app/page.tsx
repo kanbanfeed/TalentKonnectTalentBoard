@@ -112,8 +112,9 @@ type Skill = {
     <motion.div
       className="absolute"
       style={{
-        left: `${15 + (index * 14)}%`,
-        top: `${25 + (index % 3) * 25}%`,
+        left: `${-4 + (index * 14)}%`,
+        top: `${25 + (index % 3) * 28}%`,
+        
       }}
       animate={{
         y: [0, -25, 0],
