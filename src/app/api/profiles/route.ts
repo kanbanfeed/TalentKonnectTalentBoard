@@ -111,7 +111,7 @@ export async function GET() {
       })
       .firstPage();
 
-    const profiles = records.map(record => ({
+    const profiles = records.map((record: Airtable.Record<ProfileFields>) => ({
       id: record.id,
       full_name: record.fields.full_name || '',
       email: record.fields.email || '',
