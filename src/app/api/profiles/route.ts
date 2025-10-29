@@ -1,5 +1,21 @@
 import { NextResponse } from 'next/server';
 
+// Define the Profile interface for the response
+interface Profile {
+  id: string;
+  full_name: string;
+  email: string;
+  spark_line: string;
+  skills: string[];
+  city: string;
+  price_usd: number;
+  price_local: string;
+  availability: string;
+  status: string;
+  youtube_link: string;
+  photo_url: string;
+}
+
 export async function POST(request: Request) {
   try {
     console.log('=== PROFILE CREATION STARTED ===');
@@ -15,8 +31,9 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-console.log('API Key:', process.env.AIRTABLE_API_KEY);
-console.log('Base ID:', process.env.AIRTABLE_BASE_ID);
+
+    console.log('API Key exists:', !!process.env.AIRTABLE_API_KEY);
+    console.log('Base ID exists:', !!process.env.AIRTABLE_BASE_ID);
 
     const Airtable = require('airtable');
     const base = new Airtable({
@@ -111,7 +128,8 @@ export async function GET() {
       })
       .firstPage();
 
-    const profiles = records.map((record: Airtable.Record<ProfileFields>) => ({
+    // ✅ FIXED: Remove the Airtable.Record type annotation and use type assertion
+    const profiles: Profile[] = records.map((record: any) => ({
       id: record.id,
       full_name: record.fields.full_name || '',
       email: record.fields.email || '',
