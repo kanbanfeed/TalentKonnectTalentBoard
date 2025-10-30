@@ -348,9 +348,9 @@ export default function TalentBoardPage() {
           });
 
           // Remove duplicates and sort
-          const uniqueSkills = Array.from(new Set(allSkills)).sort();
-          const uniqueCities = Array.from(new Set(allCities)).sort();
-          const uniqueAvailability = Array.from(new Set(allAvailability)).sort();
+          const uniqueSkills = Array.from(new Set(allSkills)).sort() as string[];
+          const uniqueCities = Array.from(new Set(allCities)).sort() as string[];
+          const uniqueAvailability = Array.from(new Set(allAvailability)).sort() as string[];
 
           setDropdownData({
             skills: ['All Skills', ...uniqueSkills],
